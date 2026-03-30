@@ -1,0 +1,13 @@
+version: "3.8"
+services:
+  mqtt-client:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mqtt-client:local
+    container_name: mqtt-client
+    working_dir: /app
+    volumes:
+      - ./:/app:cached
+    depends_on:
+      - broker

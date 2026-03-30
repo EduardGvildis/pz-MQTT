@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>MQTT WebSocket Test</title>
+  <style>
+    body{font-family:Segoe UI,Arial;margin:18px}
+    label{display:block;margin-top:8px}
+    input,button,select{padding:6px;margin-top:4px}
+    #log{white-space:pre-wrap;border:1px solid #ddd;padding:8px;height:240px;overflow:auto;margin-top:8px}
+  </style>
+</head>
+<body>
+  <h3>MQTT WebSocket Test</h3>
+  <label>Host <input id="host" value="localhost"></label>
+  <label>Port <input id="port" value="9001"></label>
+  <label>Path (optional) <input id="path" placeholder="/ or /mqtt"></label>
+  <label>Client ID <input id="clientId" value="web-client"></label>
+  <div style="margin-top:8px">
+    <button id="connect">Connect</button>
+    <button id="disconnect" disabled>Disconnect</button>
+  </div>
+
+  <label>Subscribe topic <input id="subTopic" value="test/topic"> <button id="sub">Subscribe</button></label>
+  <label>Publish topic <input id="pubTopic" value="test/topic"> Message <input id="message" value="hello"> <button id="pub">Publish</button></label>
+
+  <div id="log"></div>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    const $ = id => document.getElementById(id);
+    let client = null;
+    const log = (t) => { $('log').textContent += t + '\n'; $('log').scrollTop = $('log').scrollHeight }
+
+    $('connect').onclick = () => {
+      const host = $('host').value || 'localhost';
+      const port = $('port').value || '9001';
+      let path = $('path').value || '';
+      if (path && !path.startsWith('/')) path = '/' + path;
+      const clientId = $('clientId').value || 'web-client-' + Math.random().toString(16).slice(2,8);
+      const url = `ws://${host}:${port}${path}`;
+      log('Connecting to ' + url + ' as ' + clientId);
+      try {
+        client = mqtt.connect(url, {clientId, keepalive: 30, reconnectPeriod: 1000});
+      } catch (e) { log('Connect error: '+e) }
+
+      client.on('connect', (conn) => { log('Connected (rc='+ (conn ? conn : 'ok') +')'); $('connect').disabled = true; $('disconnect').disabled = false })
+      client.on('reconnect', () => log('Reconnecting...'))
+      client.on('close', () => { log('Disconnected'); $('connect').disabled = false; $('disconnect').disabled = true })
+      client.on('error', (err) => log('Error: '+err))
+      client.on('message', (topic, payload) => log('<< '+topic+' : '+payload.toString()))
+    }
+
+    $('disconnect').onclick = () => { if (client) client.end(); client = null }
+
+    $('sub').onclick = () => { if (!client) return log('Not connected'); const t = $('subTopic').value; client.subscribe(t, err=> err ? log('Subscribe err: '+err) : log('Subscribed '+t)) }
+    $('pub').onclick = () => { if (!client) return log('Not connected'); const t=$('pubTopic').value, m=$('message').value; client.publish(t,m,{}, err=> err ? log('Publish err: '+err) : log('>> '+t+' : '+m)) }
+  </script>
+</body>
+</html>

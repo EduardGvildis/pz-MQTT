@@ -1,0 +1,21 @@
+services:
+  broker:
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt-broker
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./data:/mosquitto/data
+      - ./log:/mosquitto/log
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+
+  mqtt-client:
+    image: python:3.11-slim
+    container_name: mqtt-client
+    working_dir: /app
+    volumes:
+      - ./:/app:cached
+    depends_on:
+      - broker
+    # Removed entrypoint to allow `docker compose run` to execute commands
